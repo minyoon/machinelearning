@@ -1,0 +1,73 @@
+A = double(imread('mandrill-large.tiff'));
+% imshow(uint8(round(A));
+
+[width,height,color] = size(A);
+
+k = 16;
+mu = zeros(3,k); % Clusters
+
+% Initializing the clusters
+for i = 1:k
+    row = floor(unifrnd(1,width+1));
+    col = floor(unifrnd(1,height+1));
+    mu(:,i) = [A(row,col,1), A(row,col,2), A(row,col,3)];
+end
+
+
+c = zeros(width, height);
+iter = 0;
+
+%while true
+while iter < 40
+    % 'Assigning' each training set
+    for i = 1:width
+        for j=1:height
+            min = 999999999;
+            for l = 1:k
+                score = sum((mu(:,l) - [A(i,j,1); A(i,j,2); A(i,j,3)]).^2);
+                if score < min
+                    min = score;
+                    c(i,j) = l;
+                end
+            end
+        end
+    end
+    newMu= zeros(3,k);
+    % Moving each cluser centroid to mean of the points
+    for l = 1:k
+        summer = zeros(color,1);
+        count = 0;
+        for i = 1:width
+            for j = 1:height
+                if c(i,j) == l
+                    summer = summer + [A(i,j,1); A(i,j,2); A(i,j,3)];
+                    count = count + 1;
+                end
+            end
+        end
+        newMu(:,l) = summer./count;
+    end
+    if sum((newMu - mu).^2) < .001
+        break
+    end
+    mu = newMu;
+    iter = iter + 1;
+endwhile
+iter
+
+B = zeros(width,height,color);
+for l = 1:k
+    mu(1,l) = mod(round(mu(1,l)),256);
+    mu(2,l) = mod(round(mu(2,l)),256);
+    mu(3,l) = mod(round(mu(3,l)),256);
+end
+
+for i = 1:width
+    for j = 1:height
+        B(i,j,1) = mu(1,c(i,j));
+        B(i,j,2) = mu(2,c(i,j));
+        B(i,j,3) = mu(3,c(i,j));
+    end
+end
+
+imwrite(uint8(round(B)), 'mandrill-large-compressed.tiff');
